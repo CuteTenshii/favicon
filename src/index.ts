@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio';
+import {handleRequest} from "./requests";
 
 // Try multiple favicon URLs
 const urlsToTry = [
@@ -10,6 +11,7 @@ const urlsToTry = [
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
 		const rawUrl = new URL(request.url).searchParams.get('url');
+		const fromHtml = new URL(request.url).searchParams.get('from_html');
 		if (!rawUrl) return new Response('Missing URL', { status: 400 });
 
 		const url = new URL(rawUrl);
@@ -26,34 +28,36 @@ export default {
 			});
 		}
 
-		for (const urlToTry of urlsToTry) {
-			const res = await fetch(`${url.protocol}//${url.host}/${urlToTry}`, { method: 'GET' });
-			if (res.ok) {
-				// Check if the response is an image
-				const contentType = res.headers.get('Content-Type');
-				if (contentType && contentType.startsWith('image/')) {
-					const body = await res.arrayBuffer();
-					// Cache the image in R2
-					await env.r2.put(url.host, body, {
-						httpMetadata: {
-							contentType,
-							cacheControl: 'public, max-age=31536000, immutable',
-						},
-					});
+		if (!fromHtml) {
+			for (const urlToTry of urlsToTry) {
+				const res = await handleRequest(`${url.protocol}//${url.host}/${urlToTry}`);
+				if (res.ok) {
+					// Check if the response is an image
+					const contentType = res.headers.get('Content-Type');
+					if (contentType && contentType.startsWith('image/')) {
+						const body = await res.arrayBuffer();
+						// Cache the image in R2
+						await env.r2.put(url.host, body, {
+							httpMetadata: {
+								contentType,
+								cacheControl: 'public, max-age=31536000, immutable',
+							},
+						});
 
-					// Return the image with appropriate headers
-					return new Response(body, {
-						headers: {
-							'Content-Type': contentType,
-							'Cache-Control': 'public, max-age=31536000, immutable',
-						},
-					});
+						// Return the image with appropriate headers
+						return new Response(body, {
+							headers: {
+								'Content-Type': contentType,
+								'Cache-Control': 'public, max-age=31536000, immutable',
+							},
+						});
+					}
 				}
 			}
 		}
 
 		// If the favicon is not found, try to get it from meta tags
-		const htmlRes = await fetch(url.toString());
+		const htmlRes = await handleRequest(url.toString());
 		if (!htmlRes.ok) return new Response('Failed to fetch page', { status: 500 });
 		const html = await htmlRes.text();
 		const $ = cheerio.load(html);
@@ -61,7 +65,7 @@ export default {
 		const href = linkTag.attr('href');
 		if (href) {
 			const iconUrl = new URL(href, url);
-			const iconRes = await fetch(iconUrl.toString(), { method: 'GET' });
+			const iconRes = await handleRequest(iconUrl.toString());
 			if (iconRes.ok) {
 				// Check if the response is an image
 				const contentType = iconRes.headers.get('Content-Type');
