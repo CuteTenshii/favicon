@@ -30,9 +30,11 @@ export default {
 			});
 		}
 
-		if (!fromHtml) {
+		const triedUrls = [];
+		if (!fromHtml || fromHtml !== 'true') {
 			for (const urlToTry of urlsToTry) {
-				const fetchedUrl = `${url.protocol}//${url.host}/${urlToTry}`
+				const fetchedUrl = `${url.protocol}//${url.host}/${urlToTry}`;
+				triedUrls.push(fetchedUrl);
 				const res = await handleRequest(fetchedUrl);
 				if (res.ok) {
 					// Check if the response is an image
@@ -66,6 +68,7 @@ export default {
 
 		// If the favicon is not found, try to get it from meta tags
 		const htmlRes = await handleRequest(url.toString());
+		triedUrls.push(url.toString());
 		if (!htmlRes.ok) return new Response('Failed to fetch page', { status: 500 });
 		const html = await htmlRes.text();
 		const $ = cheerio.load(html);
@@ -103,6 +106,9 @@ export default {
 			}
 		}
 
-		return new Response('Not Found', { status: 404 });
+		return Response.json({
+			error: 'Favicon not found',
+			tried_urls: triedUrls,
+		}, { status: 400 });
 	},
 } satisfies ExportedHandler<Env>;
