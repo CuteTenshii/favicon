@@ -24,13 +24,16 @@ export default {
 				headers: {
 					'Content-Type': cachedFavicon.httpMetadata!.contentType || 'image/png',
 					'Cache-Control': 'public, max-age=31536000, immutable',
+					'X-Cache-Status': 'HIT',
+					'X-Icon-URL': cachedFavicon.customMetadata!['original-url'] || '',
 				},
 			});
 		}
 
 		if (!fromHtml) {
 			for (const urlToTry of urlsToTry) {
-				const res = await handleRequest(`${url.protocol}//${url.host}/${urlToTry}`);
+				const fetchedUrl = `${url.protocol}//${url.host}/${urlToTry}`
+				const res = await handleRequest(fetchedUrl);
 				if (res.ok) {
 					// Check if the response is an image
 					const contentType = res.headers.get('Content-Type');
@@ -42,6 +45,9 @@ export default {
 								contentType,
 								cacheControl: 'public, max-age=31536000, immutable',
 							},
+							customMetadata: {
+								'original-url': fetchedUrl,
+							},
 						});
 
 						// Return the image with appropriate headers
@@ -49,6 +55,8 @@ export default {
 							headers: {
 								'Content-Type': contentType,
 								'Cache-Control': 'public, max-age=31536000, immutable',
+								'X-Cache-Status': 'MISS',
+								'X-Icon-URL': fetchedUrl,
 							},
 						});
 					}
@@ -77,6 +85,9 @@ export default {
 							contentType,
 							cacheControl: 'public, max-age=31536000, immutable',
 						},
+						customMetadata: {
+							'original-url': iconUrl.toString(),
+						},
 					});
 
 					// Return the image with appropriate headers
@@ -84,6 +95,8 @@ export default {
 						headers: {
 							'Content-Type': iconRes.headers.get('Content-Type') || 'image/png',
 							'Cache-Control': 'public, max-age=31536000, immutable',
+							'X-Cache-Status': 'MISS',
+							'X-Icon-URL': iconUrl.toString(),
 						},
 					});
 				}
