@@ -10,13 +10,11 @@ const urlsToTry = [
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
-		// Redirect root URL to the GitHub repository
-		if (new URL(request.url).pathname === '/')
-			return Response.redirect('https://github.com/JustYuuto/favicon');
-
 		const rawUrl = new URL(request.url).searchParams.get('url');
 		const fromHtml = new URL(request.url).searchParams.get('from_html');
-		if (!rawUrl) return new Response('Missing URL', { status: 400 });
+
+		// Redirect to the GitHub repository if no URL is provided
+		if (!rawUrl) return Response.redirect('https://github.com/JustYuuto/favicon');
 
 		const url = new URL(rawUrl);
 		if (!url.protocol.startsWith('http')) return new Response('Invalid URL', { status: 400 });
