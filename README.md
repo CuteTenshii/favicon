@@ -1,13 +1,13 @@
 # Favicon
 
-![GitHub License](https://img.shields.io/github/license/justyuuto/favicon)
+![GitHub License](https://img.shields.io/github/license/CuteTenshii/favicon)
 
 A Cloudflare Worker that serve a website's favicon from a given URL. Useful for quickly retrieving favicons without needing to scrape the website yourself.
 
 ## Usage
 
 ```
-https://favicons.yuuto.dev/?url=https://example.com/
+https://favicons.tenshii.moe/?url=https://example.com/
 ```
 
 The worker will try predefined paths for the favicon, such as `/favicon.ico`, `/favicon.png`, and `/apple-touch-icon.png`.
