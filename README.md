@@ -1,6 +1,6 @@
 # Favicon
 
-![GitHub License](https://img.shields.io/github/license/CuteTenshii/favicon)
+[![Built with Cloudflare](https://workers.cloudflare.com/built-with-cloudflare.svg)](https://cloudflare.com)
 
 A Cloudflare Worker that serve a website's favicon from a given URL. Useful for quickly retrieving favicons without needing to scrape the website yourself.
 
