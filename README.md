@@ -25,7 +25,7 @@ If no favicon is found, a 404 error will be returned.
 ## Limitations
 
 - If the worker is unable to find a favicon, it will return a 404 error.
-- WAF (Web Application Firewall) rules may block the request if the target website has strict security measures in place. This includes sites using [Cloudflare Bot Management](https://www.cloudflare.com/application-services/products/bot-management/) or similar services.
+- WAF (Web Application Firewall) rules may block the request if the target website has strict security measures in place. This includes sites using [Cloudflare Bot Management](https://www.cloudflare.com/application-services/products/bot-management/), [Akamai Bot Manager](https://www.akamai.com/products/bot-manager) or similar services.
 
 ## License
 
