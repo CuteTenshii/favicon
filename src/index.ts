@@ -1,116 +1,40 @@
-import * as cheerio from 'cheerio';
-import {handleRequest} from "./requests";
+import {fetchImage} from './requests';
 
-// Try multiple favicon URLs
-const urlsToTry = [
-	'favicon.ico',
-	'favicon.png',
-	'apple-touch-icon.png',
-];
+const oneWeek = 604800;
 
 export default {
-	async fetch(request, env, ctx): Promise<Response> {
-		const rawUrl = new URL(request.url).searchParams.get('url');
-		const fromHtml = new URL(request.url).searchParams.get('from_html');
+  async fetch(request, env, ctx): Promise<Response> {
+    const rawUrl = new URL(request.url).searchParams.get('url');
+    const fromHtml = new URL(request.url).searchParams.get('from_html');
 
-		// Redirect to the GitHub repository if no URL is provided
-		if (!rawUrl) return Response.redirect('https://github.com/JustYuuto/favicon');
+    // Redirect to the GitHub repository if no URL is provided
+    if (!rawUrl) return Response.redirect('https://github.com/CuteTenshii/favicon');
 
-		const url = new URL(rawUrl);
-		if (!url.protocol.startsWith('http')) return new Response('Invalid URL', { status: 400 });
+    const url = new URL(rawUrl);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return new Response('Invalid URL', { status: 400 });
 
-		// Check if the favicon is already cached in R2
-		const cachedFavicon = await env.r2.get(url.host);
-		if (cachedFavicon) {
-			return new Response(cachedFavicon.body, {
-				headers: {
-					'Content-Type': cachedFavicon.httpMetadata!.contentType || 'image/png',
-					'Cache-Control': 'public, max-age=31536000, immutable',
-					'X-Cache-Status': 'HIT',
-					'X-Icon-URL': cachedFavicon.customMetadata!['original-url'] || '',
-				},
-			});
-		}
+    // Check if the favicon is already cached in R2
+    const cachedFavicon = await env.r2.get(url.host);
+    if (cachedFavicon) {
+      const metadata = cachedFavicon.customMetadata!
+      const isStale = parseInt(metadata.expireTimestamp) < Date.now();
+      if (isStale) {
+        // Fetch in background for next fetch
+        fetchImage({ url, fromHtml: !!fromHtml, env });
+      }
+      const filename = new URL(metadata.originalUrl).pathname.split('/').pop();
 
-		const triedUrls = [];
-		if (!fromHtml || fromHtml !== 'true') {
-			for (const urlToTry of urlsToTry) {
-				const fetchedUrl = `${url.protocol}//${url.host}/${urlToTry}`;
-				triedUrls.push(fetchedUrl);
-				const res = await handleRequest(fetchedUrl);
-				if (res.ok) {
-					// Check if the response is an image
-					const contentType = res.headers.get('Content-Type');
-					if (contentType && contentType.startsWith('image/')) {
-						const body = await res.arrayBuffer();
-						// Cache the image in R2
-						await env.r2.put(url.host, body, {
-							httpMetadata: {
-								contentType,
-								cacheControl: 'public, max-age=31536000, immutable',
-							},
-							customMetadata: {
-								'original-url': fetchedUrl,
-							},
-						});
+      return new Response(cachedFavicon.body, {
+        headers: {
+          'Content-Type': cachedFavicon.httpMetadata!.contentType || 'image/png',
+          'Content-Disposition': `inline; filename=${filename}`,
+          'Cache-Control': `public, max-age=${oneWeek}, immutable`,
+          'X-Cache-Status': isStale ? 'STALE' : 'HIT',
+          'X-Icon-URL': metadata.originalUrl || '',
+        },
+      });
+    }
 
-						// Return the image with appropriate headers
-						return new Response(body, {
-							headers: {
-								'Content-Type': contentType,
-								'Cache-Control': 'public, max-age=31536000, immutable',
-								'X-Cache-Status': 'MISS',
-								'X-Icon-URL': fetchedUrl,
-							},
-						});
-					}
-				}
-			}
-		}
-
-		// If the favicon is not found, try to get it from meta tags
-		const htmlRes = await handleRequest(url.toString());
-		triedUrls.push(url.toString());
-		if (!htmlRes.ok) return new Response('Failed to fetch page', { status: 500 });
-		const html = await htmlRes.text();
-		const $ = cheerio.load(html);
-		const linkTag = $('link[rel*="icon"]');
-		const href = linkTag.attr('href');
-		if (href) {
-			const iconUrl = new URL(href, url);
-			const iconRes = await handleRequest(iconUrl.toString());
-			if (iconRes.ok) {
-				// Check if the response is an image
-				const contentType = iconRes.headers.get('Content-Type');
-				if (contentType && contentType.startsWith('image/')) {
-					const body = await iconRes.arrayBuffer();
-					// Cache the image in R2
-					await env.r2.put(url.host, body, {
-						httpMetadata: {
-							contentType,
-							cacheControl: 'public, max-age=31536000, immutable',
-						},
-						customMetadata: {
-							'original-url': iconUrl.toString(),
-						},
-					});
-
-					// Return the image with appropriate headers
-					return new Response(body, {
-						headers: {
-							'Content-Type': iconRes.headers.get('Content-Type') || 'image/png',
-							'Cache-Control': 'public, max-age=31536000, immutable',
-							'X-Cache-Status': 'MISS',
-							'X-Icon-URL': iconUrl.toString(),
-						},
-					});
-				}
-			}
-		}
-
-		return Response.json({
-			error: 'Favicon not found',
-			tried_urls: triedUrls,
-		}, { status: 400 });
-	},
+    return fetchImage({ url, fromHtml: !!fromHtml, env });
+  },
 } satisfies ExportedHandler<Env>;

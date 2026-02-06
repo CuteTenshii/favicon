@@ -20,7 +20,11 @@ If no favicon is found, a 404 error will be returned.
 ### Parameters
 
 - `url`: The URL of the website to fetch the favicon from. This parameter is required.
-- `from_html`: If set to `true`, the worker will try to fetch the favicon without checking the predefined paths. This is useful for websites that do not have a favicon at the standard locations. The default value is `false`.
+- `from_html`: If set to any value, the worker will try to fetch the favicon without checking the predefined paths. This is useful for websites that do not have a favicon at the standard locations.
+
+## Caching
+
+Images expire after one week, this means that after one week they'll be refetched.
 
 ## Limitations
 
