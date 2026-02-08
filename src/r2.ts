@@ -12,7 +12,7 @@ export async function saveImage({host, image, env, type, fetchedUrl,}: {
     httpMetadata: { contentType: type },
     customMetadata: {
       originalUrl: fetchedUrl,
-      expireTimestamp: String(Date.now() + oneWeek),
+      expireTimestamp: String(Date.now() + oneWeek * 1000),
     },
   });
 
