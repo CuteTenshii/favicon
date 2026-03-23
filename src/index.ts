@@ -17,10 +17,10 @@ export default {
     const cachedFavicon = await env.r2.get(url.host);
     if (cachedFavicon) {
       const metadata = cachedFavicon.customMetadata!
-      const isStale = parseInt(metadata.expireTimestamp) < Date.now();
+      const isStale = Number.parseInt(metadata.expireTimestamp) < Date.now();
       if (isStale) {
         // Fetch in background for next fetch
-        fetchImage({ url, fromHtml: !!fromHtml, env });
+        ctx.waitUntil(fetchImage({ url, fromHtml: !!fromHtml, env }));
       }
       const filename = new URL(metadata.originalUrl).pathname.split('/').pop();
 
