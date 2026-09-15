@@ -1,6 +1,6 @@
 import { fetchImage } from './requests';
+import { createResponseHeaders } from './r2';
 
-const oneWeek = 604800;
 const domainRoute = new URLPattern({ pathname: '/:domain' });
 
 async function handleFavicon(rawUrl: string, fromHtml: boolean, env: Env, ctx: ExecutionContext) {
@@ -20,16 +20,12 @@ async function handleFavicon(rawUrl: string, fromHtml: boolean, env: Env, ctx: E
     if (isStale) {
       ctx.waitUntil(fetchImage({ url, fromHtml, env }));
     }
-    const filename = new URL(metadata.originalUrl).pathname.split('/').pop();
-
     return new Response(cachedFavicon.body, {
-      headers: {
-        'Content-Type': cachedFavicon.httpMetadata!.contentType || 'image/png',
-        'Content-Disposition': `inline; filename=${filename}`,
-        'Cache-Control': `public, max-age=${oneWeek}, immutable`,
-        'X-Cache-Status': isStale ? 'STALE' : 'HIT',
-        'X-Icon-URL': metadata.originalUrl || '',
-      },
+      headers: createResponseHeaders({
+        type: cachedFavicon.httpMetadata!.contentType || 'image/png',
+        fetchedUrl: metadata.originalUrl,
+        cacheStatus: isStale ? 'STALE' : 'HIT',
+      }),
     });
   }
 

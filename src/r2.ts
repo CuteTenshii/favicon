@@ -1,5 +1,20 @@
 const oneWeek = 604800;
 
+export function createResponseHeaders({ type, fetchedUrl, cacheStatus }: {
+  type: string;
+  fetchedUrl: string;
+  cacheStatus: 'HIT' | 'MISS' | 'STALE';
+}) {
+  const filename = new URL(fetchedUrl).pathname.split('/').pop();
+  return {
+    'Content-Type': type,
+    'Content-Disposition': `inline; filename=${filename}`,
+    'Cache-Control': `public, max-age=${oneWeek}, immutable`,
+    'X-Cache-Status': cacheStatus,
+    'X-Icon-URL': fetchedUrl,
+  };
+}
+
 export async function saveImage({ host, image, env, type, fetchedUrl, }: {
   host: string;
   image: ArrayBuffer;
@@ -7,7 +22,6 @@ export async function saveImage({ host, image, env, type, fetchedUrl, }: {
   fetchedUrl: string;
   type: string;
 }) {
-  // Cache the image in R2
   await env.r2.put(host, image, {
     httpMetadata: { contentType: type },
     customMetadata: {
@@ -16,15 +30,7 @@ export async function saveImage({ host, image, env, type, fetchedUrl, }: {
     },
   });
 
-  const filename = new URL(fetchedUrl).pathname.split('/').pop();
-  // Return the image with appropriate headers
   return new Response(image, {
-    headers: {
-      'Content-Type': type,
-      'Content-Disposition': `inline; filename=${filename}`,
-      'Cache-Control': `public, max-age=${oneWeek}, immutable`,
-      'X-Cache-Status': 'MISS',
-      'X-Icon-URL': fetchedUrl,
-    },
+    headers: createResponseHeaders({ type, fetchedUrl, cacheStatus: 'MISS' }),
   });
 }
