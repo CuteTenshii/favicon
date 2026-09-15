@@ -1,4 +1,4 @@
-import {saveImage} from './r2';
+import { saveImage } from './r2';
 import * as cheerio from 'cheerio';
 
 const cookieJar = new Map<string, string>();
@@ -81,7 +81,12 @@ export async function fetchImage({ url, fromHtml, env }: {
   // If the favicon is not found, try to get it from meta tags
   const htmlRes = await handleRequest(url.toString());
   triedUrls.push(url.toString());
-  if (!htmlRes.ok) return new Response(`Failed to fetch page: ${htmlRes.status} ${htmlRes.statusText}`.trim(), { status: 500 });
+  if (!htmlRes.ok) {
+    return new Response(
+      `Failed to fetch page: ${htmlRes.status} ${htmlRes.statusText}`.trim(),
+      { status: 500 },
+    );
+  }
 
   const $ = cheerio.load(await htmlRes.text());
   const linkTag = $('link[rel*="icon"]');

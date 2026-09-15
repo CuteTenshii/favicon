@@ -1,6 +1,6 @@
 const oneWeek = 604800;
 
-export async function saveImage({host, image, env, type, fetchedUrl,}: {
+export async function saveImage({ host, image, env, type, fetchedUrl, }: {
   host: string;
   image: ArrayBuffer;
   env: Env;

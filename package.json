@@ -6,13 +6,18 @@
 		"deploy": "wrangler deploy",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
-		"test": "vitest",
+		"lint": "eslint .",
 		"cf-typegen": "wrangler types"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20260317.1",
-		"typescript": "^5.9.3",
-		"wrangler": "^4.76.0"
+		"@cloudflare/workers-types": "^5.20260915.1",
+		"@eslint/js": "^10.0.1",
+		"@stylistic/eslint-plugin": "^5.10.0",
+		"@typescript/native": "npm:typescript@^7.0.2",
+		"eslint": "^10.10.0",
+		"typescript": "npm:@typescript/typescript6@^6.0.2",
+		"typescript-eslint": "^8.70.0",
+		"wrangler": "^4.131.2"
 	},
 	"dependencies": {
 		"cheerio": "^1.2.0"
