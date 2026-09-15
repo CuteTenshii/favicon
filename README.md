@@ -7,7 +7,13 @@ A Cloudflare Worker that serve a website's favicon from a given URL. Useful for 
 ## Usage
 
 ```
-https://favicons.tenshii.moe/?url=https://example.com/
+https://favicons.tenshii.moe/example.com
+```
+
+The domain route uses HTTPS. Use the `url` parameter when you need another protocol or a specific page URL:
+
+```
+https://favicons.tenshii.moe/?url=https://example.com/this/is/my/url/
 ```
 
 The worker will try predefined paths for the favicon, such as `/favicon.ico`, `/favicon.png`, and `/apple-touch-icon.png`.
@@ -24,7 +30,7 @@ If no favicon is found, a 404 error will be returned.
 
 ## Caching
 
-Images expire after one week, this means that after one week they'll be refetched.
+Images expire after one week. This means that after one week they'll be refetched. You do not need to do anything!
 
 ## Limitations
 

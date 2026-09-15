@@ -1,40 +1,58 @@
-import {fetchImage} from './requests';
+import { fetchImage } from './requests';
 
 const oneWeek = 604800;
+const domainRoute = new URLPattern({ pathname: '/:domain' });
 
-export default {
-  async fetch(request, env, ctx): Promise<Response> {
-    const rawUrl = new URL(request.url).searchParams.get('url');
-    const fromHtml = new URL(request.url).searchParams.get('from_html');
+async function handleFavicon(rawUrl: string, fromHtml: boolean, env: Env, ctx: ExecutionContext) {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return new Response('Invalid URL', { status: 400 });
+  }
 
-    // Redirect to the GitHub repository if no URL is provided
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return new Response('Invalid URL', { status: 400 });
+
+  const cachedFavicon = await env.r2.get(url.host);
+  if (cachedFavicon) {
+    const metadata = cachedFavicon.customMetadata!;
+    const isStale = Number.parseInt(metadata.expireTimestamp) < Date.now();
+    if (isStale) {
+      ctx.waitUntil(fetchImage({ url, fromHtml, env }));
+    }
+    const filename = new URL(metadata.originalUrl).pathname.split('/').pop();
+
+    return new Response(cachedFavicon.body, {
+      headers: {
+        'Content-Type': cachedFavicon.httpMetadata!.contentType || 'image/png',
+        'Content-Disposition': `inline; filename=${filename}`,
+        'Cache-Control': `public, max-age=${oneWeek}, immutable`,
+        'X-Cache-Status': isStale ? 'STALE' : 'HIT',
+        'X-Icon-URL': metadata.originalUrl || '',
+      },
+    });
+  }
+
+  return fetchImage({ url, fromHtml, env });
+}
+
+async function handleRequest(request: Request, env: Env, ctx: ExecutionContext) {
+  const requestUrl = new URL(request.url);
+  const fromHtml = !!requestUrl.searchParams.get('from_html');
+
+  if (requestUrl.pathname === '/') {
+    const rawUrl = requestUrl.searchParams.get('url');
     if (!rawUrl) return Response.redirect('https://github.com/CuteTenshii/favicon');
 
-    const url = new URL(rawUrl);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') return new Response('Invalid URL', { status: 400 });
+    return handleFavicon(rawUrl, fromHtml, env, ctx);
+  }
 
-    // Check if the favicon is already cached in R2
-    const cachedFavicon = await env.r2.get(url.host);
-    if (cachedFavicon) {
-      const metadata = cachedFavicon.customMetadata!
-      const isStale = Number.parseInt(metadata.expireTimestamp) < Date.now();
-      if (isStale) {
-        // Fetch in background for next fetch
-        ctx.waitUntil(fetchImage({ url, fromHtml: !!fromHtml, env }));
-      }
-      const filename = new URL(metadata.originalUrl).pathname.split('/').pop();
+  const domain = domainRoute.exec(requestUrl.href)?.pathname.groups.domain;
+  return domain
+    ? handleFavicon(`https://${domain}`, fromHtml, env, ctx)
+    : new Response('Not found', { status: 404 });
+}
 
-      return new Response(cachedFavicon.body, {
-        headers: {
-          'Content-Type': cachedFavicon.httpMetadata!.contentType || 'image/png',
-          'Content-Disposition': `inline; filename=${filename}`,
-          'Cache-Control': `public, max-age=${oneWeek}, immutable`,
-          'X-Cache-Status': isStale ? 'STALE' : 'HIT',
-          'X-Icon-URL': metadata.originalUrl || '',
-        },
-      });
-    }
-
-    return fetchImage({ url, fromHtml: !!fromHtml, env });
-  },
+export default {
+  fetch: handleRequest,
 } satisfies ExportedHandler<Env>;
