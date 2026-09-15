@@ -15,7 +15,7 @@ export default defineConfig([
     },
     rules: {
       '@stylistic/indent': ['error', 2],
-      '@stylistic/max-len': ['error', { code: 120 }],
+      '@stylistic/max-len': ['error', { code: 120, ignoreStrings: true }],
       '@stylistic/object-curly-spacing': ['error', 'always'],
       '@stylistic/quotes': ['error', 'single'],
       '@stylistic/semi': ['error', 'always'],

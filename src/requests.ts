@@ -2,6 +2,7 @@ import { saveImage } from './r2';
 import * as cheerio from 'cheerio';
 
 const cookieJar = new Map<string, string>();
+const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36';
 // Try multiple favicon URLs
 const urlsToTry = [
   'favicon.ico',
@@ -14,6 +15,7 @@ export async function handleRequest(url: string) {
     redirect: 'manual',
     headers: {
       Cookie: createCookieHeader(cookieJar),
+      'User-Agent': userAgent,
     },
   });
   const cookieHeader = res.headers.get('set-cookie');
